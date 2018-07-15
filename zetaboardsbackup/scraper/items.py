@@ -1,4 +1,4 @@
-from scrapy.contrib_exp.djangoitem import DjangoItem
+from scrapy_djangoitem import DjangoItem
 from scrapy.item import Item, Field
 
 from forum.models import Forum, Thread, Post, User, UserGroup

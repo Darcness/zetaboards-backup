@@ -1,7 +1,9 @@
 from __future__ import division
 import re
 
-from BeautifulSoup import BeautifulSoup
+# from BeautifulSoup import BeautifulSoup
+# TODO import the new way
+from bs4 import BeautifulSoup
 from scrapy import log
 from scrapy.conf import settings
 from scrapy.exceptions import NotConfigured
@@ -92,6 +94,9 @@ class ZetaboardsSpider(BaseSpider):
         # Get all root categories on the page, store them and then fire of a 
         # request to go visit their specific subpage so we can get the subcats.
         root_cats = hxs.select('//table[@class="cat_head"]//h2[not(@class)]/a')
+        if len(root_cats) == 0:
+            print "ERROR"
+            import code; code.interact(local=dict(globals(), **locals()))
         items_and_reqs = []
         for cat_selector in root_cats:
             # Load root category as a ForumItem (with no parent)
@@ -252,7 +257,7 @@ class ZetaboardsSpider(BaseSpider):
             raw_post = post.findNextSibling('tr').find('td', attrs={'class': 'c_post'}).text
 
             post_loader.add_value('thread', response.request.meta['thread'])
-            post_loader.add_value('zeta_id', post['id'])
+            post_loader.add_value('zeta_id', unicode(post['id']))
             post_loader.add_value('username', username)
             if post_info.find('span', attrs={'class': 'desc'}):
                 post_loader.add_value('ip_address', post_info.find('span', attrs={'class': 'desc'}).text)

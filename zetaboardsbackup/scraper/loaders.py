@@ -12,10 +12,10 @@ def extract_ip_address(string):
         return ''
 
 def extract_numbers(string):
-    regex = re.compile("(?P<id>[0-9]+)")
+    regex = re.compile("(?P<id>[0-9]+(,[0-9]+)*)")
     match = regex.search(string)
     if match:
-        return match.groups()[0]
+        return to_int(match.groups()[0])
     else:
         return None
 
