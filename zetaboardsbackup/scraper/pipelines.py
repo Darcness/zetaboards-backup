@@ -34,6 +34,8 @@ class ZetaboardsPipeline(object):
                                             }
                                         )
         elif isinstance(item, ThreadItem):
+            if 'replies' not in item:
+                return None
             spider.log("Processing Thread Item.")
             django_item, created = item.django_model._default_manager.get_or_create(
                                         zeta_id=item['zeta_id'],
@@ -47,6 +49,8 @@ class ZetaboardsPipeline(object):
                                             'date_posted': item['date_posted']
                                             }
                                         )
+            if not created:
+                django_item.save()
         elif isinstance(item, PostItem):
             spider.log("Processing Post Item.")
             django_item, created = item.django_model._default_manager.get_or_create(
@@ -55,13 +59,18 @@ class ZetaboardsPipeline(object):
                                 defaults={
                                         'username': item['username'],
                                         #raw_post_bbcode gets added from RawPostItem
-                                        'ip_address': item['ip_address'],
+                                        #ip_address may be suppressed
+                                        'ip_address': item['ip_address'] if 'ip_address' in item else None,
                                         'date_posted': item['date_posted']
                                     }
                                 )
+            if not created:
+                django_item.save()
         elif isinstance(item, RawPostItem):
             spider.log("Processing RawPost Item.")
             django_item = Post.objects.get(zeta_id=item['zeta_id'], thread=Thread.objects.get(zeta_id=item['thread']))
+            if 'raw_post_bbcode' not in item:
+                raise Exception("post {0} in topic {1} in forum {2} uneditable!".format(django_item.zeta_id,django_item.thread_id,django_item.thread.forum_id))
             django_item.raw_post_bbcode = item['raw_post_bbcode'] 
             django_item.save()
         elif isinstance(item, UserItem):

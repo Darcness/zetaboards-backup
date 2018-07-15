@@ -14,8 +14,15 @@ CONCURRENT_SPIDERS = 20
 #DOWNLOAD_DELAY = 15
 #RANDOMIZE_DOWNLOAD_DELAY = True
 
+RETRY_TIMES = 5
+
 # To remove the compression middleware default, zetaboards seems to have
 # issues with some pages not being properly gzipped.
+DOWNLOADER_MIDDLEWARES = {
+   'scrapy.contrib.downloadermiddleware.httpcompression.HttpCompressionMiddleware': None,
+}
+# scrapy documentation says not to use DOWNLOADER_MIDDLEWARES_BASE
+"""
 DOWNLOADER_MIDDLEWARES_BASE = {
     'scrapy.contrib.downloadermiddleware.robotstxt.RobotsTxtMiddleware': 100,
     'scrapy.contrib.downloadermiddleware.httpauth.HttpAuthMiddleware': 300,
@@ -28,6 +35,7 @@ DOWNLOADER_MIDDLEWARES_BASE = {
     'scrapy.contrib.downloadermiddleware.stats.DownloaderStats': 850,
     'scrapy.contrib.downloadermiddleware.httpcache.HttpCacheMiddleware': 900,
 }
+"""
 
 EXTENSIONS = {
     'scraper.extensions.SpiderCloseFunctionality': 500,

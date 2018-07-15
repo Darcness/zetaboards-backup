@@ -102,7 +102,7 @@ class ZetaboardsSpider(BaseSpider):
             items_and_reqs.append(cat)
             # Send off a request to process the root category subpage.
             # including the parent forum in the meta. 
-            req = Request(cat_selector.select('@href').extract()[0],
+            req = Request(cat_selector.select('@href').extract()[0]+"?cutoff=100",
                           meta={'parent': cat['zeta_id']},
                           callback=self.root_category_subpages)
             items_and_reqs.append(req)
@@ -122,27 +122,40 @@ class ZetaboardsSpider(BaseSpider):
             cat_load.add_value('parent', response.request.meta['parent'])
             cat = cat_load.load_item()
             items_and_reqs.append(cat)
-            # Send off a request to process the root category subpage.
-            # including the parent forum in the meta. 
-            req = Request(cat_selector.select('@href').extract()[0],
-                          meta={'forum': cat['zeta_id']},
-                          callback=self.thread_list)
+            # Send off a request to recursively look for categories in the 
+            # category subpage
+            req = Request(cat_selector.select('@href').extract()[0]+"?cutoff=100",
+                          meta={'parent': cat['zeta_id']},
+                          callback=self.root_category_subpages)
             items_and_reqs.append(req)
-        return items_and_reqs
+            # Send off a request to process the category subpage.
+            # including the parent forum in the meta. 
+#            req = Request(cat_selector.select('@href').extract()[0],
+#                          meta={'forum': cat['zeta_id']},
+#                          callback=self.thread_list)
+#            items_and_reqs.append(req)
+        return items_and_reqs + self.thread_list(response, response.request.meta['parent'])
 
-    def thread_list(self, response):
+    def thread_list(self, response, forum=None):
         """
         Crawl the forum index thread list to calculate how many pages need
         to be requested (the pagination range).
         """
+        if not forum:
+            forum = response.request.meta['forum']
         hxs = HtmlXPathSelector(response)
         # We now need to work out how many pages are in this forum.
-        last_page = hxs.select('//ul[@class="cat-pages"]/li[last()]/a/text()').extract()[0]
+        pages = hxs.select('//ul[@class="cat-pages"]/li[last()]/a/text()').extract()
+        last_page = pages[0] if pages else 1
         page_range = range(1, int(last_page)+1)
         reqs = []
+        if '?' in response.url:
+            baseurl = response.url.split('?')[0]
+        else:
+            baseurl = response.url
         for page in page_range:
-            req = Request("%s%i/" % (response.url, page),
-                          meta={'forum': response.request.meta['forum']},
+            req = Request("%s%i/?cutoff=100" % (baseurl, page),
+                          meta={'forum': forum },
                           callback=self.page_of_thread_list)
             reqs.append(req)
         self.log("[THREAD LIST] %s -> %i pages of threads." % (response.url, len(reqs)), level=log.INFO)
@@ -153,10 +166,12 @@ class ZetaboardsSpider(BaseSpider):
         Crawl a specific paged thread list to get a list of threads.
         """
         hxs = HtmlXPathSelector(response)
-        threads = hxs.select('//table[@class="posts"]/tr[contains(@class, "row1") or contains(@class, "row2")]')
+        threads = hxs.select('//form/table[@class="posts"]/tr[contains(@class, "row1") or contains(@class, "row2")]')
         items_and_reqs = []
         for thr_selector in threads:
             thr_load = ThreadLoader(ThreadItem(), thr_selector)
+            if not thr_selector.select('td[@class="c_cat-starter"]/a/@href').extract():
+                continue
             thr_load.add_xpath('zeta_id', 'td[@class="c_cat-title"]/a/@href')
             user = self.get_member_if_required(thr_selector.select('td[@class="c_cat-starter"]/a/@href').extract()[0])
             if user:
@@ -218,25 +233,42 @@ class ZetaboardsSpider(BaseSpider):
         """
         Parse a page of topic posts. Uses Beautiful soup so we 
         can easily do a regex lookup on the table row class names.
+        Also, massage for zetaboards bug(s)
         """
-        soup = BeautifulSoup(response.body)
+        myMassage = [(re.compile('<th>(.*?)</td>'), lambda match: match.group(0) if '<td>' in match.group(1) else '<th>'+match.group(1)+'</th>')] 
+        soup = BeautifulSoup(response.body, markupMassage=myMassage)
         posts = soup.findAll('tr', id=re.compile("post-"))
         items, reqs = [], []
         for post in posts:
             # Load up and sort out BeautifulSoup stuff.
             post_loader = PostLoader(PostItem(), response=response)
             username = post.find('a', attrs={'class': 'member'})
+            if username:
+                username = username.text
+            else:
+                username = post.find('td',attrs={'class': 'c_username'})
+                username = username.text+' (Guest)' if username else 'Guest'
             post_info = post.find('td', attrs={'class': 'c_postinfo'})
             raw_post = post.findNextSibling('tr').find('td', attrs={'class': 'c_post'}).text
 
             post_loader.add_value('thread', response.request.meta['thread'])
             post_loader.add_value('zeta_id', post['id'])
-            post_loader.add_value('username', username.text)
-            post_loader.add_value('ip_address', post_info.find('span', attrs={'class': 'desc'}).text)
+            post_loader.add_value('username', username)
+            if post_info.find('span', attrs={'class': 'desc'}):
+                post_loader.add_value('ip_address', post_info.find('span', attrs={'class': 'desc'}).text)
             post_loader.add_value('date_posted', post_info.find('span', attrs={'class': 'left'}).text)
             post_item = post_loader.load_item()
             items.append(post_item)
-            edit_url = post.findNextSibling('tr', attrs={'class': 'c_postfoot'}).find('span', attrs={'class': 'left'}).find('a')['href']
+            try:
+                edit_url = post.findNextSibling('tr', attrs={'class': 'c_postfoot'}).find('span', attrs={'class': 'left'}).find('a')['href']
+            except:
+                print "error parsing %s" % (post['id'])
+                print post
+                print post.nextSibling
+                print post.nextSibling.nextSibling
+                print post.nextSibling.nextSibling.nextSibling
+                print post.nextSibling.nextSibling.nextSibling.nextSibling
+                raise
             req = Request(edit_url,
                     meta={'forum': response.request.meta['forum'],
                           'thread': response.request.meta['thread'],

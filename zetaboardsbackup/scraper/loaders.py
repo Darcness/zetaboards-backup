@@ -26,15 +26,27 @@ def to_datetime_long(s):
     try:
         dt = datetime.datetime.strptime(s, '%b %d %Y, %I:%M %p')
     except ValueError:
+        today = datetime.date.today()
         now = datetime.datetime.now()
         # We lose the time here.
         if 'Yesterday' in s:
-            yesterday = now - datetime.timedelta(days=1)
-            dt = yesterday
+            yesterday = today - datetime.timedelta(days=1)
+            time = datetime.datetime.strptime(s, 'Yesterday, %I:%M %p').time()
+            dt = datetime.datetime.combine(yesterday, time)
         elif 'Today' in s:
-            dt = now
+            time = datetime.datetime.strptime(s, 'Today, %I:%M %p').time()
+            dt = datetime.datetime.combine(today, time)
+        elif 'minute' in s:
+            min_str = s.split(" ")[0]
+            if re.match("^[0-9]+$",min_str):
+                m = int(min_str)
+            elif min_str == "One":
+                m = 1
+            else:
+                raise Exception("Could not parse '%s' as time" % (s,))
+            dt = now - datetime.timedelta(minutes=m)
         else:
-            print s
+            raise Exception("Could not parse '%s' as time" % (s,))
     return dt
 
 def to_datetime_short(s):

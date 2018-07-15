@@ -8,6 +8,7 @@ TEMPLATE_DEBUG = DEBUG
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
+        'OPTIONS': {'charset':'utf8mb4',},
         'NAME': 'zetaboardsbackup',
         'USER': 'zetaboardsbackup',
         'PASSWORD': 'zetaboardsbackup',
@@ -29,7 +30,7 @@ USE_L10N = True
 # URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
 # trailing slash.
 # Examples: "http://foo.com/media/", "/media/".
-ADMIN_MEDIA_PREFIX = '/media/'
+# ADMIN_MEDIA_PREFIX = '/media/'
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'tp8sv(yii4==r64w7z^k+cy9p^$+!!@6k@n8nnnaoaa!24z=hn'
@@ -48,9 +49,9 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
 )
 
-ROOT_URLCONF = 'zetaboardsbackup.urls'
+ROOT_URLCONF = 'urls'
 
-MEDIA_ROOT = here('../media')
+# MEDIA_ROOT = here('../media')
 
 TEMPLATE_DIRS = (
     here('templates'),
@@ -66,7 +67,7 @@ INSTALLED_APPS = (
     'django.contrib.admindocs',
     'django.contrib.admin',
     # 3rd Party Apps
-    'south',
+    # 'south',
     # Project Apps
     'forum',
 )
