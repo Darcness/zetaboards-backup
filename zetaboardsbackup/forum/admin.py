@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from forum.models import Forum, Thread, Post, User, UserGroup
+from zetaboardsbackup.forum.models import Forum, Thread, Post, User, UserGroup
 
 
 class ForumAdmin(admin.ModelAdmin):
