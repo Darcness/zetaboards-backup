@@ -3,3 +3,5 @@ settings_local.py
 *.swp
 .scrapy
 *.sw*
+outpu*.sql
+*.log

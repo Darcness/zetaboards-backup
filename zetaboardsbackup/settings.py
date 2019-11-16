@@ -69,7 +69,7 @@ INSTALLED_APPS = (
     # 3rd Party Apps
     # 'south',
     # Project Apps
-    'forum',
+    'zetaboardsbackup.forum',
 )
 
 try:
