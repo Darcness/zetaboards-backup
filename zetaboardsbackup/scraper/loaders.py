@@ -21,12 +21,7 @@ def extract_numbers_url(string):
         return None
 
 def extract_numbers(string):
-    regex = re.compile("(?P<id>[0-9]+(,[0-9]+)*)")
-    match = regex.search(string)
-    if match:
-        return to_int(match.groups()[0])
-    else:
-        return None
+    return extract_numbers_url(string)
 
 def strip_start_date(s):
     return s.replace('Start Date ', '')
